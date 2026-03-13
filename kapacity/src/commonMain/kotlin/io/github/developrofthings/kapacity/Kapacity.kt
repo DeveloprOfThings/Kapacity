@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package io.github.developrofthings.kapacity
 
 import kotlin.jvm.JvmInline
