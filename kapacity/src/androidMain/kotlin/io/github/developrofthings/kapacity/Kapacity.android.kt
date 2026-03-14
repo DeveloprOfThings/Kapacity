@@ -6,3 +6,6 @@ private val _androidKapacityDecFormater = DecimalFormat(/* pattern = */ "#,###.#
 
 internal actual fun formatByteCount(byteCount: Long): String =
     _androidKapacityDecFormater.format(/*number = */ byteCount)
+
+internal actual fun formatSize(size: Double): String =
+    _androidKapacityDecFormater.format(/*number = */ size)

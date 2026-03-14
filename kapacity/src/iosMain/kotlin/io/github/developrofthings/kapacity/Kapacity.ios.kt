@@ -11,7 +11,11 @@ private val _iosKapacityDecFormater = NSNumberFormatter().apply {
     usesGroupingSeparator = true
 }
 
-internal actual fun formatByteCount(byteCount: Long): String {
-    return _iosKapacityDecFormater.stringFromNumber(number = NSNumber(long = byteCount))
+internal actual fun formatByteCount(byteCount: Long): String =
+    _iosKapacityDecFormater.stringFromNumber(number = NSNumber(long = byteCount))
         ?: throw IllegalArgumentException("$byteCount cannot be represented as a string!")
-}
+
+
+internal actual fun formatSize(size: Double): String =
+    _iosKapacityDecFormater.stringFromNumber(number = NSNumber(double = size))
+        ?: throw IllegalArgumentException("$size cannot be represented as a string!")

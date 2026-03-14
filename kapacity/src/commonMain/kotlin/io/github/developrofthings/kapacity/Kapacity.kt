@@ -5,13 +5,12 @@ package io.github.developrofthings.kapacity
 import kotlin.jvm.JvmInline
 
 internal expect fun formatByteCount(byteCount: Long): String
+internal expect fun formatSize(size: Double): String
 
 @JvmInline
 value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapacity> {
 
-    private fun determineKapacityUnit(
-        useMetric: Boolean,
-    ): KapacityUnit = KapacityUnit
+    private fun determineKapacityUnit(useMetric: Boolean): KapacityUnit = KapacityUnit
         .entries
         .reversed()
         .firstOrNull { unit ->
@@ -19,23 +18,20 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
             else unit.binary <= this.rawBytes
         } ?: KapacityUnit.Byte
 
-    fun toString(
-        unit: KapacityUnit = KapacityUnit.Byte,
-        useMetric: Boolean = true,
-    ): String {
-        if (unit == KapacityUnit.Byte) return "${formatByteCount(/*number = */this.rawBytes)} bytes"
+    fun toString(unit: KapacityUnit? = null, useMetric: Boolean = true): String {
+        val resolvedUnit = unit ?: determineKapacityUnit(useMetric = useMetric)
+        if (resolvedUnit == KapacityUnit.Byte) {
+            return "${formatByteCount(/*number = */this.rawBytes)} bytes"
+        }
         // Double division is perfectly safe here, even for Exabytes.
-        val divisor = if (useMetric) unit.metric else unit.binary
+        val divisor = if (useMetric) resolvedUnit.metric else resolvedUnit.binary
         val size = this.rawBytes.toDouble() / divisor.toDouble()
-
+        val formattedSize = formatSize(size = size)
         val isPlural = size != 1.0
-        return if (isPlural) "$size ${unit}s" else "$size $unit"
+        return if (isPlural) "$formattedSize ${resolvedUnit}s" else "$formattedSize $resolvedUnit"
     }
 
-    fun toString(useMetric: Boolean): String =
-        toString(unit = determineKapacityUnit(useMetric = useMetric))
-
-    override fun toString(): String = toString(useMetric = true)
+    override fun toString(): String = toString(unit = null, useMetric = true)
 
     /**
      * Adds the specified number of bytes to this capacity.
@@ -442,6 +438,51 @@ enum class KapacityUnit(internal val metric: Long, internal val binary: Long) {
         binary = 1_152_921_504_606_846_976
     ),  // 1000^6 or 1024^6
 }
+
+private val Kapacity.rawBytesCoercedToIntRange: Int
+    // Maximum size for an array is limited to the max value of `Int` (≈ 2.147 Gigabytes)
+    get() = this.rawBytes.coerceIn(minimumValue = 0, maximumValue = Int.MAX_VALUE.toLong()).toInt()
+
+/**
+ * Allocates a new boxed [Array] of [Byte] with a size equal to this capacity.
+ *
+ * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
+ * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
+ *
+ * @param init A function used to compute the initial value of each array element based on its index.
+ * @return A new boxed [Array] of [Byte].
+ */
+fun Kapacity.toArray(init: (Int) -> Byte = { 0 }): Array<Byte> =
+    Array(size = this.rawBytesCoercedToIntRange, init = init)
+
+/**
+ * Allocates a new primitive [ByteArray] with a size equal to this capacity, using the
+ * provided [init] function to populate the elements.
+ *
+ * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
+ * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
+ *
+ * @param init A function used to compute the initial value of each array element based on its index.
+ * @return A new primitive [ByteArray].
+ */
+fun Kapacity.toByteArray(
+    init: (Int) -> Byte = { 0 },
+): ByteArray = ByteArray(size = this.rawBytesCoercedToIntRange, init = init)
+
+/**
+ * Allocates a new primitive [ByteArray] with a size equal to this capacity.
+ * * This is the most performant way to allocate a buffer, as it utilizes native memory
+ * allocation where all elements are instantly initialized to `0`.
+ *
+ * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
+ * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
+ *
+ * @return A new primitive [ByteArray] filled with zeros.
+ */
+fun Kapacity.toByteArray(): ByteArray = ByteArray(size = this.rawBytesCoercedToIntRange)
 
 /**
  * Returns the [Kapacity] of this boxed [Array], calculated directly from its size.
