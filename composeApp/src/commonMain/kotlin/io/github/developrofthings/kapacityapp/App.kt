@@ -17,11 +17,11 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.then
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -169,7 +169,7 @@ private fun Capacities(
             },
             colors = ExposedDropdownMenuDefaults.textFieldColors(),
             modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
 
         ExposedDropdownMenu(
@@ -207,17 +207,3 @@ private inline fun rememberedMutableBoolean(initialValue: Boolean): MutableState
 @Composable
 private inline fun <T> rememberedMutableValue(initialValue: T): MutableState<T> =
     remember { mutableStateOf(value = initialValue) }
-
-@Composable
-private inline fun <T> rememberedMutableValue(
-    key: Any?,
-    crossinline predicate: () -> T
-): MutableState<T> =
-    remember(key1 = key) { mutableStateOf(value = predicate()) }
-
-@Composable
-private inline fun rememberedMutableBoolean(
-    key: Any?,
-    crossinline predicate: () -> Boolean
-): MutableState<Boolean> =
-    remember(key1 = key) { mutableStateOf(value = predicate()) }

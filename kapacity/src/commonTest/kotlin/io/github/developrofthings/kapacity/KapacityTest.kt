@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 
 class KapacityTest {
     @Test
-    fun `verify metric (SI) conversions from Long`() {
+    fun `verify metric SI conversions from Long`() {
         assertEquals(1L, 1L.byte.rawBytes)
         assertEquals(1_000L, 1L.kilobyte.rawBytes)
         assertEquals(1_000_000L, 1L.megabyte.rawBytes)
@@ -17,7 +17,7 @@ class KapacityTest {
     }
 
     @Test
-    fun `verify binary (IEC) conversions from Long`() {
+    fun `verify binary IEC conversions from Long`() {
         assertEquals(1L, 1L.binaryByte.rawBytes)
         assertEquals(1_024L, 1L.binaryKilobyte.rawBytes)
         assertEquals(1_048_576L, 1L.binaryMegabyte.rawBytes)
