@@ -23,10 +23,10 @@ Add the dependency to your `build.gradle.kts`:
 ```kotlin
 dependencies {
     // Core library
-    implementation("io.github.developrofthings:kapacity:1.0.0")
+    implementation("io.github.developrofthings:kapacity:0.9.9-beta02")
     
     // Optional: kotlinx-io extensions
-    implementation("io.github.developrofthings:kapacity-ktx-io:1.0.0")
+    implementation("io.github.developrofthings:kapacity-io:0.9.9-beta01")
 }
 ```
 *(Note: Update the group ID and version as necessary once published)*
