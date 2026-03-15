@@ -26,7 +26,7 @@ project(":kapacity") {
     )
 }
 
-project(":ktxIO") {
+project(":kapacity-io") {
     configurePublishing(
         groupId = projectGroup,
         artifactId = this.name,

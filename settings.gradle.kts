@@ -35,4 +35,4 @@ dependencyResolutionManagement {
 
 include(":composeApp")
 include(":kapacity")
-include(":ktxIO")
+include(":kapacity-io")

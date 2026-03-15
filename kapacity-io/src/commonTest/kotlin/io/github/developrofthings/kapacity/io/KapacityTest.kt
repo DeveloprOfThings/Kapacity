@@ -1,4 +1,4 @@
-package io.github.developrofthings.ktxio
+package io.github.developrofthings.kapacity.io
 
 import io.github.developrofthings.kapacity.byte
 import kotlinx.io.Buffer
