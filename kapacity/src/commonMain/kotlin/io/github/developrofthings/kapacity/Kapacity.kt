@@ -18,20 +18,28 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
             else unit.binary <= this.rawBytes
         } ?: KapacityUnit.Byte
 
-    fun toString(unit: KapacityUnit? = null, useMetric: Boolean = true): String {
+    fun toString(
+        unit: KapacityUnit? = null,
+        useMetric: Boolean = true,
+        useUnitSuffix: Boolean = true,
+    ): String {
         val resolvedUnit = unit ?: determineKapacityUnit(useMetric = useMetric)
         if (resolvedUnit == KapacityUnit.Byte) {
-            return "${formatByteCount(/*number = */this.rawBytes)} bytes"
+            return formatByteCount(byteCount = this.rawBytes).let { byteCountStr ->
+                if (useUnitSuffix) "$byteCountStr bytes" else byteCountStr
+            }
         }
         // Double division is perfectly safe here, even for Exabytes.
         val divisor = if (useMetric) resolvedUnit.metric else resolvedUnit.binary
         val size = this.rawBytes.toDouble() / divisor.toDouble()
         val formattedSize = formatSize(size = size)
-        val isPlural = size != 1.0
-        return if (isPlural) "$formattedSize ${resolvedUnit}s" else "$formattedSize $resolvedUnit"
+
+        return if (useUnitSuffix) {
+            if (size != 1.0) "$formattedSize ${resolvedUnit}s" else "$formattedSize $resolvedUnit"
+        } else formattedSize
     }
 
-    override fun toString(): String = toString(unit = null, useMetric = true)
+    override fun toString(): String = toString(unit = null, useMetric = true, useUnitSuffix = true)
 
     /**
      * Adds the specified number of bytes to this capacity.

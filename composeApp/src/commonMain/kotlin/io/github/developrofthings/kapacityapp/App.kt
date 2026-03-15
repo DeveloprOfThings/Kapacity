@@ -95,8 +95,8 @@ fun App() {
                     },
                 )
 
-                var fromKapacityUnit by  rememberedMutableValue(initialValue = KapacityUnit.Byte)
-                var toKapacityUnit by  rememberedMutableValue(initialValue = KapacityUnit.Megabyte)
+                var fromKapacityUnit by rememberedMutableValue(initialValue = KapacityUnit.Byte)
+                var toKapacityUnit by rememberedMutableValue(initialValue = KapacityUnit.Megabyte)
 
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -109,7 +109,7 @@ fun App() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(text = "From:", style = MaterialTheme.typography.labelLarge)
-                        Capacities(selectedUnit = fromKapacityUnit) {
+                        Kapacities(selectedUnit = fromKapacityUnit) {
                             fromKapacityUnit = it
                         }
                     }
@@ -120,7 +120,7 @@ fun App() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(text = "To:", style = MaterialTheme.typography.labelLarge)
-                        Capacities(selectedUnit = toKapacityUnit) {
+                        Kapacities(selectedUnit = toKapacityUnit) {
                             toKapacityUnit = it
                         }
                     }
@@ -133,9 +133,9 @@ fun App() {
                         }
                         append(
                             kapacityTextFieldState.longValue.toKapacity(
-                            unit = fromKapacityUnit,
-                            useMetric = true,
-                        ).toString(
+                                unit = fromKapacityUnit,
+                                useMetric = true,
+                            ).toString(
                                 unit = toKapacityUnit,
                                 useMetric = true,
                             )
@@ -149,7 +149,7 @@ fun App() {
 }
 
 @Composable
-private fun Capacities(
+private fun Kapacities(
     selectedUnit: KapacityUnit,
     modifier: Modifier = Modifier,
     onKapacityUnit: (KapacityUnit) -> Unit,
