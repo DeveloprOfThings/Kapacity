@@ -33,5 +33,14 @@ jobs:
           # variables to Gradle properties inside your build script.
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+
+      - name: Generate Summary
+        if: success()
+        run: |
+          echo "### 🚀 Successfully Published Kapacity!" >> $GITHUB_STEP_SUMMARY
+          echo "Version: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Modules: \`kapacity\`, \`kapacity-io\`" >> $GITHUB_STEP_SUMMARY
+          echo "It may take 15-30 minutes for the artifacts to appear on [Maven Central Search](https://central.sonatype.com/)." >> $GITHUB_STEP_SUMMARY
