@@ -1,0 +1,37 @@
+name: Publish to Maven Central
+
+# This workflow only runs when you push a new tag like "v1.0.0"
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Build and Publish
+    # Must run on macOS to compile the iOS native binaries
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Publish to Maven Central
+        # The Vanniktech plugin uses this task to upload and automatically release
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+        env:
+          # These prefix "ORG_GRADLE_PROJECT_" automatically maps the environment
+          # variables to Gradle properties inside your build script.
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
