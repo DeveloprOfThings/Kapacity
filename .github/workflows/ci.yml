@@ -1,17 +1,14 @@
 name: CI / Run Tests
 
 on:
-  # Runs whenever you open or update a Pull Request targeting the main branch
   pull_request:
     branches: [ "main" ]
-  # Runs whenever code is pushed directly to the main branch
   push:
     branches: [ "main" ]
 
 jobs:
   test:
     name: Build and Test
-    # Crucial: Must be macOS so the iOS/Native tests can actually compile and run
     runs-on: macos-latest
 
     steps:
@@ -26,10 +23,11 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          # Caches your gradle dependencies so future builds are much faster
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Run All Tests
-        # 'check' is the standard Gradle lifecycle task that compiles code,
-        # runs Lint checks, and executes all unit tests across all targets
         run: ./gradlew check --no-configuration-cache
 
       - name: Generate Summary
