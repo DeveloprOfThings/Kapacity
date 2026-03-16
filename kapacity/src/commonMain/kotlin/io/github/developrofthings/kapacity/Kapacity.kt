@@ -43,30 +43,8 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
 
     override fun toString(): String = toString(unit = null, useMetric = true, useUnitSuffix = true)
 
-    /**
-     * Adds the specified number of bytes to this capacity.
-     * Ensures the resulting capacity is never negative.
-     */
-    operator fun plus(bytes: Int): Kapacity = plus(bytes = bytes.toLong())
 
-    /**
-     * Subtracts the specified number of bytes from this capacity.
-     * Ensures the resulting capacity is never negative.
-     */
-    operator fun minus(bytes: Int): Kapacity = minus(bytes = bytes.toLong())
-
-    /**
-     * Multiplies this capacity by a given scalar factor.
-     * Ensures the resulting capacity is never negative.
-     */
-    operator fun times(bytes: Int): Kapacity = times(bytes = bytes.toLong())
-
-    /**
-     * Divides this capacity by a given scalar divisor.
-     * Ensures the resulting capacity is never negative.
-     */
-    operator fun div(bytes: Int): Kapacity = div(bytes = bytes.toLong())
-
+    //region `Long` operator overloads
     /**
      * Adds the specified number of bytes to this capacity.
      * Ensures the resulting capacity is never negative.
@@ -87,18 +65,111 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
      * Multiplies this capacity by a given scalar factor.
      * Ensures the resulting capacity is never negative.
      */
-    operator fun times(bytes: Long): Kapacity = fromBytes(
-        bytes = (this.rawBytes * bytes).coerceAtLeast(minimumValue = 0L)
+    operator fun times(factor: Long): Kapacity = fromBytes(
+        bytes = (this.rawBytes * factor).coerceAtLeast(minimumValue = 0L)
     )
 
     /**
      * Divides this capacity by a given scalar divisor.
      * Ensures the resulting capacity is never negative.
      */
-    operator fun div(bytes: Long): Kapacity = fromBytes(
-        bytes = (this.rawBytes / bytes).coerceAtLeast(minimumValue = 0L)
+    operator fun div(divisor: Long): Kapacity = fromBytes(
+        bytes = (this.rawBytes / divisor).coerceAtLeast(minimumValue = 0L)
+    )
+    //endregion
+
+    //region `Int` operator overloads
+    /**
+     * Adds the specified number of bytes to this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun plus(bytes: Int): Kapacity = plus(bytes = bytes.toLong())
+
+    /**
+     * Subtracts the specified number of bytes from this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun minus(bytes: Int): Kapacity = minus(bytes = bytes.toLong())
+
+    /**
+     * Multiplies this capacity by a given scalar factor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun times(bytes: Int): Kapacity = times(factor = bytes.toLong())
+
+    /**
+     * Divides this capacity by a given scalar divisor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun div(divisor: Int): Kapacity = div(divisor = divisor.toLong())
+    //endregion
+
+    //region `Double` operator overloads
+    /**
+     * Adds the specified number of bytes to this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun plus(bytes: Double): Kapacity = fromBytes(
+        bytes = (this.rawBytes + bytes).coerceAtLeast(minimumValue = 0.0).roundToLong()
     )
 
+    /**
+     * Subtracts the specified number of bytes from this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun minus(bytes: Double): Kapacity = fromBytes(
+        bytes = (this.rawBytes - bytes).coerceAtLeast(minimumValue = 0.0).roundToLong()
+    )
+
+    /**
+     * Multiplies this capacity by a given scalar factor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun times(factor: Double): Kapacity = fromBytes(
+        bytes = (this.rawBytes * factor).coerceAtLeast(minimumValue = 0.0).roundToLong()
+    )
+
+    /**
+     * Divides this capacity by a given scalar divisor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun div(divisor: Double): Kapacity {
+        require(divisor != 0.0 && !divisor.isNaN() && !divisor.isInfinite()) {
+            "Cannot divide Kapacity by zero, NaN, or Infinity."
+        }
+        return fromBytes(
+            bytes = (this.rawBytes / divisor).coerceAtLeast(minimumValue = 0.0).roundToLong()
+        )
+    }
+    //endregion
+
+    //region `Float` operator overloads
+    /**
+     * Adds the specified number of bytes to this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun plus(bytes: Float): Kapacity = plus(bytes = bytes.toDouble())
+
+    /**
+     * Subtracts the specified number of bytes from this capacity.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun minus(bytes: Float): Kapacity = minus(bytes = bytes.toDouble())
+
+    /**
+     * Multiplies this capacity by a given scalar factor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun times(factor: Float): Kapacity = times(factor = factor.toDouble())
+
+    /**
+     * Divides this capacity by a given scalar divisor.
+     * Ensures the resulting capacity is never negative.
+     */
+    operator fun div(divisor: Float): Kapacity = div(divisor = divisor.toDouble())
+    //endregion
+
+    //region `Kapacity` operator overloads
     /**
      * Adds another [Kapacity] to this one.
      * Ensures the resulting capacity is never negative.
@@ -117,6 +188,7 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
      * [Long] ratio representing how many times the [other] capacity fits into this one.
      */
     operator fun div(other: Kapacity): Long = this.rawBytes / other.rawBytes
+    //endregion
 
     override fun compareTo(other: Kapacity): Int = this.rawBytes.compareTo(other.rawBytes)
 
