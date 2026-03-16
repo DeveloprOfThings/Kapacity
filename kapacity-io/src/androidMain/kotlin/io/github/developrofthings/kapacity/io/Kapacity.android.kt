@@ -3,6 +3,7 @@ package io.github.developrofthings.kapacity.io
 import io.github.developrofthings.kapacity.Kapacity
 import io.github.developrofthings.kapacity.byte
 import java.io.File
+import java.nio.ByteBuffer
 import java.nio.file.Path
 import kotlin.io.path.fileSize
 
@@ -20,3 +21,8 @@ val File.kapacity: Kapacity get() = this.length().byte
  * If the file does not exist, throws an exception matching the underlying behavior of [Path.fileSize].
  */
 val Path.kapacity: Kapacity get() = this.fileSize().byte
+
+/**
+ * Returns the [Kapacity] of this [ByteBuffer], calculated directly from its length on the disk.
+ */
+val ByteBuffer.kapacity: Kapacity get() = this.capacity().byte

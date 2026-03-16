@@ -18,20 +18,20 @@ class KapacityTest {
 
     @Test
     fun `verify binary IEC conversions from Long`() {
-        assertEquals(1L, 1L.binaryByte.rawBytes)
-        assertEquals(1_024L, 1L.binaryKilobyte.rawBytes)
-        assertEquals(1_048_576L, 1L.binaryMegabyte.rawBytes)
-        assertEquals(1_073_741_824L, 1L.binaryGigabyte.rawBytes)
-        assertEquals(1_099_511_627_776L, 1L.binaryTerabyte.rawBytes)
-        assertEquals(1_125_899_906_842_624L, 1L.binaryPetabyte.rawBytes)
-        assertEquals(1_152_921_504_606_846_976L, 1L.binaryExabyte.rawBytes)
+        assertEquals(1L, 1L.byte.rawBytes)
+        assertEquals(1_024L, 1L.kibibyte.rawBytes)
+        assertEquals(1_048_576L, 1L.mebibyte.rawBytes)
+        assertEquals(1_073_741_824L, 1L.gibibyte.rawBytes)
+        assertEquals(1_099_511_627_776L, 1L.tebibyte.rawBytes)
+        assertEquals(1_125_899_906_842_624L, 1L.pebibyte.rawBytes)
+        assertEquals(1_152_921_504_606_846_976L, 1L.exbibyte.rawBytes)
     }
 
     @Test
     fun `verify conversions from Int`() {
         // Just checking a few to ensure the Int extensions route correctly
         assertEquals(5_000_000L, 5.megabyte.rawBytes)
-        assertEquals(5_242_880L, 5.binaryMegabyte.rawBytes)
+        assertEquals(5_242_880L, 5.mebibyte.rawBytes)
     }
 
     @Test
@@ -77,7 +77,7 @@ class KapacityTest {
     @Test
     fun `verify comparison operators`() {
         assertTrue(1.gigabyte > 900.megabyte)
-        assertTrue(1.binaryKilobyte > 1.kilobyte) // 1024 > 1000
+        assertTrue(1.kibibyte > 1.kilobyte) // 1024 > 1000
         assertTrue(500.megabyte < 1.gigabyte)
         
         // Ensure sorting works
@@ -104,10 +104,10 @@ class KapacityTest {
     @Test
     fun testDoubleBinaryConversions() {
         // 1.5 MiB = 1.5 * 1,048,576 = 1,572,864 bytes
-        assertEquals(1_572_864L, 1.5.binaryMegabyte.rawBytes)
+        assertEquals(1_572_864L, 1.5.mebibyte.rawBytes)
 
         // 0.5 GiB = 0.5 * 1,073,741,824 = 536,870,912 bytes
-        assertEquals(536_870_912L, 0.5.binaryGigabyte.rawBytes)
+        assertEquals(536_870_912L, 0.5.gibibyte.rawBytes)
     }
 
     @Test
@@ -116,6 +116,6 @@ class KapacityTest {
         assertEquals(1_500_000L, 1.5f.megabyte.rawBytes)
 
         // 1.5f MiB = 1,572,864 bytes
-        assertEquals(1_572_864L, 1.5f.binaryMegabyte.rawBytes)
+        assertEquals(1_572_864L, 1.5f.mebibyte.rawBytes)
     }
 }
