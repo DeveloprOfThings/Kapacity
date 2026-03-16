@@ -1,8 +1,10 @@
 @file:Suppress("unused")
+@file:OptIn(ExperimentalUnsignedTypes::class)
 
 package io.github.developrofthings.kapacity
 
 import kotlin.jvm.JvmInline
+import kotlin.math.roundToLong
 
 internal expect fun formatByteCount(byteCount: Long): String
 internal expect fun formatSize(size: Double): String
@@ -120,9 +122,23 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
 
     companion object {
         fun fromBytes(bytes: Long): Kapacity = Kapacity(rawBytes = bytes)
+
+        fun fromBytes(bytes: ULong): Kapacity = fromBytes(bytes = bytes.toLong())
     }
 }
 
+/**
+ * Converts this numerical value into a [Kapacity] instance based on the specified [unit] and standard.
+ *
+ * By default, this uses the Metric (SI) standard (powers of 1,000). For example, converting
+ * `5L` with a unit of Megabytes will result in 5,000,000 bytes. If [useMetric] is set to `false`,
+ * the Binary (IEC) standard (powers of 1,024) is used instead, resulting in 5,242,880 bytes.
+ *
+ * @param unit The unit of measurement this value represents (e.g., Kilobyte, Megabyte).
+ * @param useMetric If `true`, calculates using the base-10 Metric standard (1 KB = 1,000 bytes).
+ * If `false`, calculates using the base-2 Binary standard (1 KiB = 1,024 bytes). Defaults to `true`.
+ * @return A strictly-typed [Kapacity] representing the exact total in bytes.
+ */
 fun Long.toKapacity(
     unit: KapacityUnit,
     useMetric: Boolean = true,
@@ -131,16 +147,77 @@ fun Long.toKapacity(
 )
 
 /**
+ * Converts this double-precision fractional value into a [Kapacity] instance based on the specified [unit] and standard.
+ *
+ * The resulting byte count is rounded to the nearest whole byte.
+ * By default, this uses the Metric (SI) standard (powers of 1,000). For example, converting
+ * `1.5` with a unit of Megabytes will result in 1,500,000 bytes. If [useMetric] is set to `false`,
+ * the Binary (IEC) standard (powers of 1,024) is used instead, resulting in 1,572,864 bytes.
+ *
+ * @param unit The unit of measurement this value represents (e.g., Kilobyte, Megabyte).
+ * @param useMetric If `true`, calculates using the base-10 Metric standard (1 KB = 1,000 bytes).
+ * If `false`, calculates using the base-2 Binary standard (1 KiB = 1,024 bytes). Defaults to `true`.
+ * @return A strictly-typed [Kapacity] representing the exact total in bytes.
+ */
+fun Double.toKapacity(
+    unit: KapacityUnit,
+    useMetric: Boolean = true,
+): Kapacity = Kapacity.fromBytes(
+    bytes = (this * if (useMetric) unit.metric else unit.binary).roundToLong()
+)
+
+/**
+ * Converts this single-precision fractional value into a [Kapacity] instance based on the specified [unit] and standard.
+ *
+ * The resulting byte count is rounded to the nearest whole byte.
+ * By default, this uses the Metric (SI) standard (powers of 1,000). If [useMetric] is set to `false`,
+ * the Binary (IEC) standard (powers of 1,024) is used instead.
+ * * **Note on Precision:** Because [Float] relies on 24-bit precision, representing large capacities
+ * (generally above 16 Megabytes) may result in a loss of exact byte-level precision. For large fractional
+ * capacities, prefer using [Double].
+ *
+ * @param unit The unit of measurement this value represents (e.g., Kilobyte, Megabyte).
+ * @param useMetric If `true`, calculates using the base-10 Metric standard (1 KB = 1,000 bytes).
+ * If `false`, calculates using the base-2 Binary standard (1 KiB = 1,024 bytes). Defaults to `true`.
+ * @return A strictly-typed [Kapacity] representing the calculated total in bytes.
+ */
+fun Float.toKapacity(
+    unit: KapacityUnit,
+    useMetric: Boolean = true,
+): Kapacity = Kapacity.fromBytes(
+    bytes = (this * if (useMetric) unit.metric else unit.binary).roundToLong()
+)
+
+/**
+ * Converts this unsigned numerical value into a [Kapacity] instance based on the specified [unit] and standard.
+ *
+ * By default, this uses the Metric (SI) standard (powers of 1,000). For example, converting
+ * `5uL` with a unit of Megabytes will result in 5,000,000 bytes. If [useMetric] is set to `false`,
+ * the Binary (IEC) standard (powers of 1,024) is used instead, resulting in 5,242,880 bytes.
+ *
+ * @param unit The unit of measurement this value represents (e.g., Kilobyte, Megabyte).
+ * @param useMetric If `true`, calculates using the base-10 Metric standard (1 KB = 1,000 bytes).
+ * If `false`, calculates using the base-2 Binary standard (1 KiB = 1,024 bytes). Defaults to `true`.
+ * @return A strictly-typed [Kapacity] representing the exact total in bytes.
+ */
+fun ULong.toKapacity(
+    unit: KapacityUnit,
+    useMetric: Boolean = true,
+): Kapacity = Kapacity.fromBytes(
+    bytes = (this * (if (useMetric) unit.metric else unit.binary).toULong())
+)
+
+/**
  * Converts this [Long] value into a [Kapacity] representing Bytes.
  */
-inline val Long.byte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = true)
+val Long.byte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = true)
 
 /**
  * Converts this [Long] value into a [Kapacity] representing metric Kilobytes (KB).
  *
  * This uses the base-10 standard where 1 KB = 1,000 Bytes.
  */
-inline val Long.kilobyte: Kapacity
+val Long.kilobyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Kilobyte,
         useMetric = true
@@ -151,7 +228,7 @@ inline val Long.kilobyte: Kapacity
  *
  * This uses the base-10 standard where 1 MB = 1,000,000 Bytes.
  */
-inline val Long.megabyte: Kapacity
+val Long.megabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Megabyte,
         useMetric = true
@@ -162,7 +239,7 @@ inline val Long.megabyte: Kapacity
  *
  * This uses the base-10 standard where 1 GB = 1,000,000,000 Bytes.
  */
-inline val Long.gigabyte: Kapacity
+val Long.gigabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Gigabyte,
         useMetric = true
@@ -173,7 +250,7 @@ inline val Long.gigabyte: Kapacity
  *
  * This uses the base-10 standard where 1 TB = 1,000,000,000,000 Bytes.
  */
-inline val Long.terabyte: Kapacity
+val Long.terabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Terabyte,
         useMetric = true
@@ -184,7 +261,7 @@ inline val Long.terabyte: Kapacity
  *
  * This uses the base-10 standard where 1 PB = 1,000,000,000,000,000 Bytes.
  */
-inline val Long.petabyte: Kapacity
+val Long.petabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Petabyte,
         useMetric = true
@@ -195,21 +272,21 @@ inline val Long.petabyte: Kapacity
  *
  * This uses the base-10 standard where 1 EB = 1,000,000,000,000,000,000 Bytes.
  */
-inline val Long.exabyte: Kapacity get() = toKapacity(unit = KapacityUnit.Exabyte, useMetric = true)
+val Long.exabyte: Kapacity get() = toKapacity(unit = KapacityUnit.Exabyte, useMetric = true)
 
 /**
  * Converts this [Long] value into a [Kapacity] representing Bytes.
  *
  * Evaluates the same as [byte], but explicitly utilizes the binary standard path.
  */
-inline val Long.binaryByte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = false)
+val Long.binaryByte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = false)
 
 /**
  * Converts this [Long] value into a [Kapacity] representing binary Kibibytes (KiB).
  *
  * This uses the base-2 IEC standard where 1 KiB = 1,024 Bytes.
  */
-inline val Long.binaryKilobyte: Kapacity
+val Long.binaryKilobyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Kilobyte,
         useMetric = false
@@ -220,7 +297,7 @@ inline val Long.binaryKilobyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 MiB = 1,048,576 Bytes.
  */
-inline val Long.binaryMegabyte: Kapacity
+val Long.binaryMegabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Megabyte,
         useMetric = false
@@ -231,7 +308,7 @@ inline val Long.binaryMegabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 GiB = 1,073,741,824 Bytes.
  */
-inline val Long.binaryGigabyte: Kapacity
+val Long.binaryGigabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Gigabyte,
         useMetric = false
@@ -242,7 +319,7 @@ inline val Long.binaryGigabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 TiB = 1,099,511,627,776 Bytes.
  */
-inline val Long.binaryTerabyte: Kapacity
+val Long.binaryTerabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Terabyte,
         useMetric = false
@@ -253,7 +330,7 @@ inline val Long.binaryTerabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 PiB = 1,125,899,906,842,624 Bytes.
  */
-inline val Long.binaryPetabyte: Kapacity
+val Long.binaryPetabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Petabyte,
         useMetric = false
@@ -264,7 +341,147 @@ inline val Long.binaryPetabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 EiB = 1,152,921,504,606,846,976 Bytes.
  */
-inline val Long.binaryExabyte: Kapacity
+val Long.binaryExabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Exabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing Bytes.
+ */
+val ULong.byte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = true)
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Kilobytes (KB).
+ *
+ * This uses the base-10 standard where 1 KB = 1,000 Bytes.
+ */
+val ULong.kilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Megabytes (MB).
+ *
+ * This uses the base-10 standard where 1 MB = 1,000,000 Bytes.
+ */
+val ULong.megabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Gigabytes (GB).
+ *
+ * This uses the base-10 standard where 1 GB = 1,000,000,000 Bytes.
+ */
+val ULong.gigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Terabytes (TB).
+ *
+ * This uses the base-10 standard where 1 TB = 1,000,000,000,000 Bytes.
+ */
+val ULong.terabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Petabytes (PB).
+ *
+ * This uses the base-10 standard where 1 PB = 1,000,000,000,000,000 Bytes.
+ */
+val ULong.petabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing metric Exabytes (EB).
+ *
+ * This uses the base-10 standard where 1 EB = 1,000,000,000,000,000,000 Bytes.
+ */
+val ULong.exabyte: Kapacity get() = toKapacity(unit = KapacityUnit.Exabyte, useMetric = true)
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing Bytes.
+ *
+ * Evaluates the same as [byte], but explicitly utilizes the binary standard path.
+ */
+val ULong.binaryByte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = false)
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Kibibytes (KiB).
+ *
+ * This uses the base-2 IEC standard where 1 KiB = 1,024 Bytes.
+ */
+val ULong.binaryKilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Mebibytes (MiB).
+ *
+ * This uses the base-2 IEC standard where 1 MiB = 1,048,576 Bytes.
+ */
+val ULong.binaryMegabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Gibibytes (GiB).
+ *
+ * This uses the base-2 IEC standard where 1 GiB = 1,073,741,824 Bytes.
+ */
+val ULong.binaryGigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Tebibytes (TiB).
+ *
+ * This uses the base-2 IEC standard where 1 TiB = 1,099,511,627,776 Bytes.
+ */
+val ULong.binaryTerabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Pebibytes (PiB).
+ *
+ * This uses the base-2 IEC standard where 1 PiB = 1,125,899,906,842,624 Bytes.
+ */
+val ULong.binaryPetabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [ULong] value into a [Kapacity] representing binary Exbibytes (EiB).
+ *
+ * This uses the base-2 IEC standard where 1 EiB = 1,152,921,504,606,846,976 Bytes.
+ */
+val ULong.binaryExabyte: Kapacity
     get() = toKapacity(
         unit = KapacityUnit.Exabyte,
         useMetric = false
@@ -273,7 +490,7 @@ inline val Long.binaryExabyte: Kapacity
 /**
  * Converts this [Int] value into a [Kapacity] representing Bytes.
  */
-inline val Int.byte: Kapacity
+val Int.byte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Byte,
         useMetric = true
@@ -284,7 +501,7 @@ inline val Int.byte: Kapacity
  *
  * This uses the base-10 standard where 1 KB = 1,000 Bytes.
  */
-inline val Int.kilobyte: Kapacity
+val Int.kilobyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Kilobyte,
         useMetric = true
@@ -295,7 +512,7 @@ inline val Int.kilobyte: Kapacity
  *
  * This uses the base-10 standard where 1 MB = 1,000,000 Bytes.
  */
-inline val Int.megabyte: Kapacity
+val Int.megabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Megabyte,
         useMetric = true
@@ -306,7 +523,7 @@ inline val Int.megabyte: Kapacity
  *
  * This uses the base-10 standard where 1 GB = 1,000,000,000 Bytes.
  */
-inline val Int.gigabyte: Kapacity
+val Int.gigabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Gigabyte,
         useMetric = true
@@ -317,7 +534,7 @@ inline val Int.gigabyte: Kapacity
  *
  * This uses the base-10 standard where 1 TB = 1,000,000,000,000 Bytes.
  */
-inline val Int.terabyte: Kapacity
+val Int.terabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Terabyte,
         useMetric = true
@@ -328,7 +545,7 @@ inline val Int.terabyte: Kapacity
  *
  * This uses the base-10 standard where 1 PB = 1,000,000,000,000,000 Bytes.
  */
-inline val Int.petabyte: Kapacity
+val Int.petabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Petabyte,
         useMetric = true
@@ -341,7 +558,7 @@ inline val Int.petabyte: Kapacity
  * * **Warning:** Due to the 64-bit limits of [Long], converting values of 8 or higher
  * will cause an integer overflow, resulting in a negative byte count.
  */
-inline val Int.exabyte: Kapacity
+val Int.exabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Exabyte,
         useMetric = true
@@ -352,7 +569,7 @@ inline val Int.exabyte: Kapacity
  *
  * Evaluates the same as [byte], but explicitly utilizes the binary standard path.
  */
-inline val Int.binaryByte: Kapacity
+val Int.binaryByte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Byte,
         useMetric = false
@@ -363,7 +580,7 @@ inline val Int.binaryByte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 KiB = 1,024 Bytes.
  */
-inline val Int.binaryKilobyte: Kapacity
+val Int.binaryKilobyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Kilobyte,
         useMetric = false
@@ -374,7 +591,7 @@ inline val Int.binaryKilobyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 MiB = 1,048,576 Bytes.
  */
-inline val Int.binaryMegabyte: Kapacity
+val Int.binaryMegabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Megabyte,
         useMetric = false
@@ -385,7 +602,7 @@ inline val Int.binaryMegabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 GiB = 1,073,741,824 Bytes.
  */
-inline val Int.binaryGigabyte: Kapacity
+val Int.binaryGigabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Gigabyte,
         useMetric = false
@@ -396,7 +613,7 @@ inline val Int.binaryGigabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 TiB = 1,099,511,627,776 Bytes.
  */
-inline val Int.binaryTerabyte: Kapacity
+val Int.binaryTerabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Terabyte,
         useMetric = false
@@ -407,7 +624,7 @@ inline val Int.binaryTerabyte: Kapacity
  *
  * This uses the base-2 IEC standard where 1 PiB = 1,125,899,906,842,624 Bytes.
  */
-inline val Int.binaryPetabyte: Kapacity
+val Int.binaryPetabyte: Kapacity
     get() = toLong().toKapacity(
         unit = KapacityUnit.Petabyte,
         useMetric = false
@@ -421,8 +638,288 @@ inline val Int.binaryPetabyte: Kapacity
  * **Warning:** Due to the 64-bit limits of [Long], converting values of 8 or higher
  * will cause an integer overflow, resulting in a negative byte count.
  */
-inline val Int.binaryExabyte: Kapacity
+val Int.binaryExabyte: Kapacity
     get() = toLong().toKapacity(
+        unit = KapacityUnit.Exabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing Bytes.
+ */
+val Double.byte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = true)
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Kilobytes (KB).
+ *
+ * This uses the base-10 standard where 1 KB = 1,000 Bytes.
+ */
+val Double.kilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Megabytes (MB).
+ *
+ * This uses the base-10 standard where 1 MB = 1,000,000 Bytes.
+ */
+val Double.megabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Gigabytes (GB).
+ *
+ * This uses the base-10 standard where 1 GB = 1,000,000,000 Bytes.
+ */
+val Double.gigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Terabytes (TB).
+ *
+ * This uses the base-10 standard where 1 TB = 1,000,000,000,000 Bytes.
+ */
+val Double.terabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Petabytes (PB).
+ *
+ * This uses the base-10 standard where 1 PB = 1,000,000,000,000,000 Bytes.
+ */
+val Double.petabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing metric Exabytes (EB).
+ *
+ * This uses the base-10 standard where 1 EB = 1,000,000,000,000,000,000 Bytes.
+ */
+val Double.exabyte: Kapacity get() = toKapacity(unit = KapacityUnit.Exabyte, useMetric = true)
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing Bytes.
+ *
+ * Evaluates the same as [byte], but explicitly utilizes the binary standard path.
+ */
+val Double.binaryByte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = false)
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Kibibytes (KiB).
+ *
+ * This uses the base-2 IEC standard where 1 KiB = 1,024 Bytes.
+ */
+val Double.binaryKilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Mebibytes (MiB).
+ *
+ * This uses the base-2 IEC standard where 1 MiB = 1,048,576 Bytes.
+ */
+val Double.binaryMegabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Gibibytes (GiB).
+ *
+ * This uses the base-2 IEC standard where 1 GiB = 1,073,741,824 Bytes.
+ */
+val Double.binaryGigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Tebibytes (TiB).
+ *
+ * This uses the base-2 IEC standard where 1 TiB = 1,099,511,627,776 Bytes.
+ */
+val Double.binaryTerabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Pebibytes (PiB).
+ *
+ * This uses the base-2 IEC standard where 1 PiB = 1,125,899,906,842,624 Bytes.
+ */
+val Double.binaryPetabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Double] value into a [Kapacity] representing binary Exbibytes (EiB).
+ *
+ * This uses the base-2 IEC standard where 1 EiB = 1,152,921,504,606,846,976 Bytes.
+ */
+val Double.binaryExabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Exabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing Bytes.
+ */
+val Float.byte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = true)
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Kilobytes (KB).
+ *
+ * This uses the base-10 standard where 1 KB = 1,000 Bytes.
+ */
+val Float.kilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Megabytes (MB).
+ *
+ * This uses the base-10 standard where 1 MB = 1,000,000 Bytes.
+ */
+val Float.megabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Gigabytes (GB).
+ *
+ * This uses the base-10 standard where 1 GB = 1,000,000,000 Bytes.
+ */
+val Float.gigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Terabytes (TB).
+ *
+ * This uses the base-10 standard where 1 TB = 1,000,000,000,000 Bytes.
+ */
+val Float.terabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Petabytes (PB).
+ *
+ * This uses the base-10 standard where 1 PB = 1,000,000,000,000,000 Bytes.
+ */
+val Float.petabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = true
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing metric Exabytes (EB).
+ *
+ * This uses the base-10 standard where 1 EB = 1,000,000,000,000,000,000 Bytes.
+ */
+val Float.exabyte: Kapacity get() = toKapacity(unit = KapacityUnit.Exabyte, useMetric = true)
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing Bytes.
+ *
+ * Evaluates the same as [byte], but explicitly utilizes the binary standard path.
+ */
+val Float.binaryByte: Kapacity get() = toKapacity(unit = KapacityUnit.Byte, useMetric = false)
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Kibibytes (KiB).
+ *
+ * This uses the base-2 IEC standard where 1 KiB = 1,024 Bytes.
+ */
+val Float.binaryKilobyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Kilobyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Mebibytes (MiB).
+ *
+ * This uses the base-2 IEC standard where 1 MiB = 1,048,576 Bytes.
+ */
+val Float.binaryMegabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Megabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Gibibytes (GiB).
+ *
+ * This uses the base-2 IEC standard where 1 GiB = 1,073,741,824 Bytes.
+ */
+val Float.binaryGigabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Gigabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Tebibytes (TiB).
+ *
+ * This uses the base-2 IEC standard where 1 TiB = 1,099,511,627,776 Bytes.
+ */
+val Float.binaryTerabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Terabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Pebibytes (PiB).
+ *
+ * This uses the base-2 IEC standard where 1 PiB = 1,125,899,906,842,624 Bytes.
+ */
+val Float.binaryPetabyte: Kapacity
+    get() = toKapacity(
+        unit = KapacityUnit.Petabyte,
+        useMetric = false
+    )
+
+/**
+ * Converts this [Float] value into a [Kapacity] representing binary Exbibytes (EiB).
+ *
+ * This uses the base-2 IEC standard where 1 EiB = 1,152,921,504,606,846,976 Bytes.
+ */
+val Float.binaryExabyte: Kapacity
+    get() = toKapacity(
         unit = KapacityUnit.Exabyte,
         useMetric = false
     )
@@ -465,6 +962,19 @@ fun Kapacity.toArray(init: (Int) -> Byte = { 0 }): Array<Byte> =
     Array(size = this.rawBytesCoercedToIntRange, init = init)
 
 /**
+ * Allocates a new boxed [Array] of [UByte] with a size equal to this capacity.
+ *
+ * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
+ * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
+ *
+ * @param init A function used to compute the initial value of each array element based on its index.
+ * @return A new boxed [Array] of [UByte].
+ */
+fun Kapacity.toArrayUnsigned(init: (Int) -> UByte = { 0U }): Array<UByte> =
+    Array(size = this.rawBytesCoercedToIntRange, init = init)
+
+/**
  * Allocates a new primitive [ByteArray] with a size equal to this capacity, using the
  * provided [init] function to populate the elements.
  *
@@ -493,6 +1003,19 @@ fun Kapacity.toByteArray(
 fun Kapacity.toByteArray(): ByteArray = ByteArray(size = this.rawBytesCoercedToIntRange)
 
 /**
+ * Allocates a new primitive [UByteArray] with a size equal to this capacity.
+ * * This is the most performant way to allocate a buffer, as it utilizes native memory
+ * allocation where all elements are instantly initialized to `0`.
+ *
+ * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
+ * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
+ *
+ * @return A new primitive [UByteArray] filled with zeros.
+ */
+fun Kapacity.toUByteArray(): UByteArray = UByteArray(size = this.rawBytesCoercedToIntRange)
+
+/**
  * Returns the [Kapacity] of this boxed [Array], calculated directly from its size.
  *
  * Each [Byte] element in the array represents exactly 1 byte of capacity.
@@ -505,6 +1028,13 @@ val Array<Byte>.kapacity: Kapacity get() = this.size.byte
  * Each byte in the array represents exactly 1 byte of capacity.
  */
 val ByteArray.kapacity: Kapacity get() = this.size.byte
+
+/**
+ * Returns the [Kapacity] of this boxed [Array], calculated directly from its size.
+ *
+ * Each [UByte] element in the array represents exactly 1 byte of capacity.
+ */
+val Array<UByte>.kapacity: Kapacity get() = this.size.byte
 
 /**
  * Returns the [Kapacity] of this unsigned [UByteArray], calculated directly from its size.

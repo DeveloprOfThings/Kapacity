@@ -1,113 +1,111 @@
-# Kapacity
+# Kapacity 📦
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-blue.svg)](https://kotlinlang.org/docs/multiplatform.html)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.developrofthings/kapacity.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.developrofthings/kapacity)
+[![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin-Multiplatform-blue.svg)](https://kotlinlang.org/docs/multiplatform.html)
+[![Targets](https://img.shields.io/badge/Targets-Android%20%7C%20iOS-lightgrey.svg)](#)
 
-Stop guessing if "MB" means 1,000 bytes or 1,024 bytes in your codebase. **Kapacity** is a lightweight, zero-allocation Kotlin Multiplatform library designed to make handling digital data sizes safe, strictly typed, and intuitive.
+**Kapacity** is a lightweight, zero-allocation Kotlin Multiplatform library for Android and iOS designed to make handling digital data sizes safe, strictly typed, and intuitive.
 
-It provides fluent extensions for both Metric (base-10 / SI) and Binary (base-2 / IEC) standards, complete with safe math operators, byte array allocations, and easy string formatting.
+Stop guessing if a variable named `fileSize` is in Bytes, Kilobytes, or Megabytes. Stop wondering if "MB" means 1,000 bytes or 1,024 bytes. Kapacity brings strict typing, accurate dimensional math, and localized UI formatting directly to your codebase.
 
-## Features
+## ✨ Key Features
+* **Zero Allocation:** Built entirely on `@JvmInline value class` for zero garbage collection overhead at runtime.
+* **Strict Standards:** Explicit support for both Metric/SI (powers of 1,000) and Binary/IEC (powers of 1,024) capacities.
+* **Safe Math:** Add, subtract, multiply, and divide capacities with built-in zero-coercion to prevent negative byte bounds.
+* **Platform Native:** Read sizes instantly from Android `File`/`Path` and iOS `NSURL`/`NSData`.
+* **Thread-Safe UI Formatting:** Localized, multiplatform string formatting using thread-safe `DecimalFormat` (Android) and `NSNumberFormatter` (iOS).
 
-* **Zero Allocation:** Built on `@JvmInline value class`, meaning instances are represented as raw `Long` primitives at runtime. Zero garbage collection overhead.
-* **Metric vs. Binary Strictness:** Explicit support for both Metric (`5.megabyte` = 5,000,000 bytes) and Binary (`5.binaryMegabyte` = 5,242,880 bytes) standards.
-* **Safe Dimensional Math:** Prevents "negative byte" bugs with built-in zero-coercion, and enforces correct dimensional analysis (e.g., dividing two capacities returns a scalar ratio, not a capacity).
-* **Array & Buffer Allocation:** Instantly allocate `ByteArray` or `Array<Byte>` buffers directly from a capacity, with safe coercion to JVM limits.
-* **Multiplatform Ready:** Designed for KMP, with `expect`/`actual` hooks for native string formatting across JVM, iOS, JS, and more.
-* **`kotlinx-io` Integration:** Optional extension module for seamless interop with `Buffer` and `ByteString`.
+## 🚀 Installation
 
-## Installation
-
-Add the dependency to your `build.gradle.kts`:
+Kapacity is published to Maven Central. Add the following to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
     // Core library
-    implementation("io.github.developrofthings:kapacity:0.9.9-beta03")
+    implementation("io.github.developrofthings:kapacity:0.9.9-beta01")
     
-    // Optional: kotlinx-io extensions
-    implementation("io.github.developrofthings:kapacity-io:0.9.9-beta03")
+    // Optional: kotlinx-io extensions (Buffer and ByteString interoperability)
+    implementation("io.github.developrofthings:kapacity-io:0.9.9-beta01")
 }
 ```
-*(Note: Update the group ID and version as necessary once published)*
 
-## Quick Start
+## 📖 Usage
 
-### Creating Capacities
-Kapacity provides fluent extension properties on `Int` and `Long` primitives.
+### 1. Creating Capacities
+Kapacity provides fluent extension properties for `Long`, `ULong`, `Double`, and `Float`.
+By default, standard properties (`.kilobyte`, `.megabyte`) use the **Metric (base-10)** standard. If you need exact memory measurements, use the **Binary (base-2)** equivalents.
 
 ``` kotlin
 import io.github.developrofthings.kapacity.*
 
-// Metric (Base-10 / Powers of 1,000)
-val fileSize = 5.megabyte
-val hardDrive = 2.terabyte
+// Metric (1 MB = 1,000,000 Bytes)
+val downloadSize = 5.megabyte
+val fractionalSize = 1.5.gigabyte
 
-// Binary (Base-2 / Powers of 1,024)
-val ramChunk = 512.binaryMegabyte 
-val maxMemory = 16.binaryGigabyte
+// Binary (1 MiB = 1,048,576 Bytes)
+val ramCache = 512.binaryMegabyte
+val bufferSize = 16.binaryKilobyte
+
+// Unsigned support
+val rawBytes = 1024uL.byte
 ```
 
-### Safe Math Operators
-Perform calculations without worrying about negative bounds or invalid unit states.
+### 2. Math & Operations
+Because Kapacity is strictly typed, you can perform math operations directly on the objects without worrying about underlying byte conversions.
 
 ```kotlin
-val baseSize = 10.megabyte
+val total = 1.gigabyte
+val downloaded = 250.megabyte
 
-// Add / Subtract capacities safely (coerced to 0 minimum)
-val total = baseSize + 5.megabyte
-val remaining = baseSize - 15.megabyte // Returns 0 Bytes
+val remaining = total - downloaded
+val twiceAsLarge = total * 2
 
-// Multiply / Divide by scalar numbers
-val tripled = baseSize * 3
-val half = baseSize / 2
-
-// Divide a capacity by a capacity to get a scalar ratio (Long)
-val chunksFit = 10.megabyte / 2.megabyte // Returns 5L
+// Zero-coercion prevents negative data bounds natively!
+val overSubtracted = 10.megabyte - 50.megabyte // Returns 0 Bytes
 ```
 
-### Formatting for UI
-Easily convert capacities into human-readable strings. The library dynamically resolves the most appropriate unit size based on your metric/binary preference.
+### 3. File System Integration (Android & iOS)
+Kapacity includes platform-specific extensions to instantly measure file sizes directly from the disk or memory.
 
-```kotlin
-val size = 1_500_000.byte
-println(size.toString(useMetric = true))  // "1.5 MB"
-println(size.toString(useMetric = false)) // "1.43 MiB"
+**On Android:**
+``` kotlin
+val myFile = File("/path/to/video.mp4")
+val capacity = myFile.kapacity
 
-// Or force a specific unit
-println(size.toString(unit = KapacityUnit.Kilobyte)) // "1500 KB"
+val myPath = Path.of("/path/to/document.pdf")
+val pathCapacity = myPath.kapacity
 ```
 
-### Allocating Arrays
-You can easily allocate arrays or primitive byte arrays directly from a capacity.
+**On iOS:**
+``` kotlin
+val myUrl = NSURL.fileURLWithPath("/path/to/video.mp4")
+val capacity = myUrl.kapacity // Uses NSFileManager under the hood
 
-*Note: Because Kotlin arrays are strictly indexed by `Int`, the maximum allowed size is `Int.MAX_VALUE` (≈ 2.14 GB). If your capacity exceeds that limit, the resulting array size will be silently truncated to prevent runtime crashes.*
-
-```kotlin
-// Fast native allocation filled with zeros
-val buffer: ByteArray = 512.kilobyte.toByteArray()
-
-// Allocation with custom initialization
-val customBuffer: ByteArray = 10.megabyte.toByteArray { index -> 
-    (index % 256).toByte() 
-}
+val buffer = NSData.dataWithBytes(...)
+val bufferCapacity = buffer.kapacity
 ```
 
-### Measuring Existing Data
-Quickly get the `Kapacity` of standard library arrays and collections, or import the `kapacity-io` module for `kotlinx-io` support.
+### 4. Human-Readable UI Formatting
+Kapacity handles localized formatting out of the box. The `toString()` function safely formats the underlying bytes into a readable string (e.g., "1.5 MB"), utilizing localized decimal separators.
 
 ``` kotlin
-// Standard Library
-val rawData = ByteArray(1024)
-val payloadSize: Kapacity = rawData.kapacity
+val size = 1500.kilobyte
 
-// kotlinx-io module
-import io.github.developrofthings.kapacity.io.*
+// Automatically scales the unit
+println(size.toString()) // "1.5 MB"
 
-val ioBuffer = Buffer().apply { writeString("Hello World") }
-val bufferSize: Kapacity = ioBuffer.kapacity
+// Force the binary standard format
+println(size.toString(useMetric = false)) // "1.43 MiB"
+
+// Force a specific unit
+println(size.toString(unit = KapacityUnit.Kilobyte)) // "1,500 KB"
+
+// Hide the unit suffix for clean UI tables
+println(size.toString(useUnitSuffix = false)) // "1.5"
 ```
 
-## License
+## 🛠️ Contributing & Feedback
+This library is currently in Beta. If you run into any target-specific quirks, precision issues, or have feature requests, please open an issue!
 
-This project is licensed under the MIT License.
+## ⚖️ License
+[Insert your license here, e.g., MIT License]

@@ -38,7 +38,8 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.kapacity.io)
+//            implementation(libs.kapacity.io)
+            implementation(project(":kapacity"))
         }
     }
 }

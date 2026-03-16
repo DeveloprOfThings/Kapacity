@@ -88,4 +88,34 @@ class KapacityTest {
         assertEquals(2.gigabyte, sortedList[1])
         assertEquals(1.terabyte, sortedList[2])
     }
+
+    @Test
+    fun testDoubleMetricConversions() {
+        // 1.5 MB = 1,500,000 bytes
+        assertEquals(1_500_000L, 1.5.megabyte.rawBytes)
+
+        // 2.75 GB = 2,750,000,000 bytes
+        assertEquals(2_750_000_000L, 2.75.gigabyte.rawBytes)
+
+        // Test rounding: 1.0000004 KB should round to 1000 bytes
+        assertEquals(1000L, 1.0000004.kilobyte.rawBytes)
+    }
+
+    @Test
+    fun testDoubleBinaryConversions() {
+        // 1.5 MiB = 1.5 * 1,048,576 = 1,572,864 bytes
+        assertEquals(1_572_864L, 1.5.binaryMegabyte.rawBytes)
+
+        // 0.5 GiB = 0.5 * 1,073,741,824 = 536,870,912 bytes
+        assertEquals(536_870_912L, 0.5.binaryGigabyte.rawBytes)
+    }
+
+    @Test
+    fun testFloatConversions() {
+        // 1.5f MB = 1,500,000 bytes
+        assertEquals(1_500_000L, 1.5f.megabyte.rawBytes)
+
+        // 1.5f MiB = 1,572,864 bytes
+        assertEquals(1_572_864L, 1.5f.binaryMegabyte.rawBytes)
+    }
 }
