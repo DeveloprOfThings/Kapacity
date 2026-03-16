@@ -22,10 +22,10 @@ Kapacity is published to Maven Central. Add the following to your `build.gradle.
 ```kotlin
 dependencies {
     // Core library
-    implementation("io.github.developrofthings:kapacity:0.9.9-beta01")
+    implementation("io.github.developrofthings:kapacity:0.9.9-beta04")
     
     // Optional: kotlinx-io extensions (Buffer and ByteString interoperability)
-    implementation("io.github.developrofthings:kapacity-io:0.9.9-beta01")
+    implementation("io.github.developrofthings:kapacity-io:0.9.9-beta04")
 }
 ```
 
