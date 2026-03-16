@@ -24,11 +24,19 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
         unit: KapacityUnit? = null,
         useMetric: Boolean = true,
         useUnitSuffix: Boolean = true,
+        useAbbreviation: Boolean = true,
     ): String {
         val resolvedUnit = unit ?: determineKapacityUnit(useMetric = useMetric)
         if (resolvedUnit == KapacityUnit.Byte) {
             return formatByteCount(byteCount = this.rawBytes).let { byteCountStr ->
-                if (useUnitSuffix) "$byteCountStr bytes" else byteCountStr
+                if (useUnitSuffix) {
+                    if (useAbbreviation) {
+                        "$byteCountStr ${resolvedUnit.abbreviationMetric}"
+                    } else {
+                        if (this.rawBytes != 1L) "$byteCountStr ${resolvedUnit}s"
+                        else "$byteCountStr $resolvedUnit"
+                    }
+                } else byteCountStr
             }
         }
         // Double division is perfectly safe here, even for Exabytes.
@@ -37,11 +45,19 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
         val formattedSize = formatSize(size = size)
 
         return if (useUnitSuffix) {
-            if (size != 1.0) "$formattedSize ${resolvedUnit}s" else "$formattedSize $resolvedUnit"
+            if (useAbbreviation) {
+                if (useMetric) "$formattedSize ${resolvedUnit.abbreviationMetric}"
+                else "$formattedSize ${resolvedUnit.abbreviationBinary}"
+            } else if (size != 1.0) "$formattedSize ${resolvedUnit}s" else "$formattedSize $resolvedUnit"
         } else formattedSize
     }
 
-    override fun toString(): String = toString(unit = null, useMetric = true, useUnitSuffix = true)
+    override fun toString(): String = toString(
+        unit = null,
+        useMetric = true,
+        useUnitSuffix = true,
+        useAbbreviation = true,
+    )
 
 
     //region `Long` operator overloads
@@ -206,16 +222,48 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
  * @property metric The multiplier for the base-10 standard (powers of 1,000).
  * @property binary The multiplier for the base-2 standard (powers of 1,024).
  */
-enum class KapacityUnit(internal val metric: Long, internal val binary: Long) {
-    Byte(metric = 1, binary = 1), // 1000^0 or 1024^0
-    Kilobyte(metric = 1_000, binary = 1_024), // 1000^1 or 1024^1
-    Megabyte(metric = 1_000_000, binary = 1_048_576), // 1000^2 or 1024^2
-    Gigabyte(metric = 1_000_000_000, binary = 1_073_741_824), // 1000^3 or 1024^3
-    Terabyte(metric = 1_000_000_000_000, binary = 1_099_511_627_776), // 1000^4 or 1024^4
-    Petabyte(metric = 1_000_000_000_000_000, binary = 1_125_899_906_842_624),  // 1000^5 or 1024^5
+enum class KapacityUnit(
+    internal val metric: Long,
+    internal val binary: Long,
+    internal val abbreviationMetric: String,
+    internal val abbreviationBinary: String = abbreviationMetric,
+) {
+    Byte(metric = 1, binary = 1, abbreviationMetric = "B"), // 1000^0 or 1024^0
+    Kilobyte(
+        metric = 1_000,
+        binary = 1_024,
+        abbreviationMetric = "KB",
+        abbreviationBinary = "KiB"
+    ), // 1000^1 or 1024^1
+    Megabyte(
+        metric = 1_000_000,
+        binary = 1_048_576,
+        abbreviationMetric = "MB",
+        abbreviationBinary = "MiB"
+    ), // 1000^2 or 1024^2
+    Gigabyte(
+        metric = 1_000_000_000,
+        binary = 1_073_741_824,
+        abbreviationMetric = "GB",
+        abbreviationBinary = "GiB"
+    ), // 1000^3 or 1024^3
+    Terabyte(
+        metric = 1_000_000_000_000,
+        binary = 1_099_511_627_776,
+        abbreviationMetric = "TB",
+        abbreviationBinary = "TiB"
+    ), // 1000^4 or 1024^4
+    Petabyte(
+        metric = 1_000_000_000_000_000,
+        binary = 1_125_899_906_842_624,
+        abbreviationMetric = "PB",
+        abbreviationBinary = "PiB"
+    ),  // 1000^5 or 1024^5
     Exabyte(
         metric = 1_000_000_000_000_000_000,
-        binary = 1_152_921_504_606_846_976
+        binary = 1_152_921_504_606_846_976,
+        abbreviationMetric = "EB",
+        abbreviationBinary = "EiB"
     ),  // 1000^6 or 1024^6
 }
 
