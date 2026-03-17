@@ -131,4 +131,4 @@ println(size.toString(useUnitSuffix = false)) // "1.5"
 This library is currently in Beta. If you run into any target-specific quirks, precision issues, or have feature requests, please open an issue!
 
 ## ⚖️ License
-[Insert your license here, e.g., MIT License]
+MIT License
