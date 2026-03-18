@@ -1,13 +1,18 @@
+@file:Suppress("unused")
+
 package io.github.developrofthings.kapacity.io
 
 import io.github.developrofthings.kapacity.Kapacity
 import io.github.developrofthings.kapacity.byte
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSData
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSFileSize
+import platform.Foundation.NSMutableData
 import platform.Foundation.NSNumber
 import platform.Foundation.NSURL
+import platform.Foundation.create
 
 /**
  * Returns the [Kapacity] of this [NSData] buffer, calculated directly from its length in memory.
@@ -37,3 +42,17 @@ val NSURL.kapacity: Kapacity
         // Convert to a Long and wrap it in your capacity extension
         return (fileSize?.longValue ?: 0L).byte
     }
+
+/**
+ * Allocates a new native Apple [NSMutableData] buffer initialized with zeros,
+ * sized exactly to this [Kapacity].
+ */
+@OptIn(BetaInteropApi::class)
+fun Kapacity.toNSMutableData(): NSMutableData = NSMutableData.create(length = this.rawBytes.toULong())!!
+
+/**
+ * Allocates a new native Apple [NSData] buffer initialized with zeros,
+ * sized exactly to this [Kapacity].
+ */
+@OptIn(BetaInteropApi::class)
+fun Kapacity.toNSData(): NSData = toNSMutableData()

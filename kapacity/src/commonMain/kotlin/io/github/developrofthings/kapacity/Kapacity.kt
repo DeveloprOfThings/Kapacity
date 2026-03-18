@@ -1,5 +1,5 @@
 @file:Suppress("unused")
-@file:OptIn(ExperimentalUnsignedTypes::class)
+@file:OptIn(ExperimentalUnsignedTypes::class, InternalKapacityApi::class)
 
 package io.github.developrofthings.kapacity
 
@@ -11,6 +11,22 @@ internal expect fun formatSize(size: Double): String
 
 @JvmInline
 value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapacity> {
+
+    /**
+     * Coerces this capacity's exact byte count into a standard 32-bit [Int] suitable for memory
+     * allocation.
+     *
+     * **VM Array Limit:** This safely clamps to `Int.MAX_VALUE - 8` rather than the absolute `Int.MAX_VALUE`.
+     * This accounts for internal JVM object header overheads and Dalvik memory alignment padding,
+     * completely preventing internal VM `NegativeArraySizeException` or `OutOfMemoryError` crashes.
+     */
+    @InternalKapacityApi
+    val rawBytesCoercedToIntRange: Int
+        // Maximum size for an array is limited to the max value of `Int` (≈ 2.147 Gigabytes)
+        get() = this.rawBytes.coerceIn(
+            minimumValue = 0,
+            maximumValue = (Int.MAX_VALUE - 8).toLong()
+        ).toInt()
 
     private fun determineKapacityUnit(useMetric: Boolean): KapacityUnit = KapacityUnit
         .entries
@@ -209,7 +225,11 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
     override fun compareTo(other: Kapacity): Int = this.rawBytes.compareTo(other.rawBytes)
 
     companion object {
-        fun fromBytes(bytes: Long): Kapacity = Kapacity(rawBytes = bytes)
+        fun fromBytes(bytes: Long): Kapacity = Kapacity(
+            rawBytes = bytes.coerceAtLeast(
+                minimumValue = 0L
+            )
+        )
 
         fun fromBytes(bytes: ULong): Kapacity = fromBytes(bytes = bytes.toLong())
     }
@@ -1083,15 +1103,11 @@ val UByteArray.kapacity: Kapacity get() = this.size.byte
 val Collection<Byte>.kapacity: Kapacity get() = this.size.byte
 //endregion
 
-private val Kapacity.rawBytesCoercedToIntRange: Int
-    // Maximum size for an array is limited to the max value of `Int` (≈ 2.147 Gigabytes)
-    get() = this.rawBytes.coerceIn(minimumValue = 0, maximumValue = Int.MAX_VALUE.toLong()).toInt()
-
 /**
  * Allocates a new boxed [Array] of [Byte] with a size equal to this capacity.
  *
  * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
- * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * allowed size is [Int.MAX_VALUE]` - 8` (approximately 2.14 GB). If this capacity exceeds
  * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
  *
  * @param init A function used to compute the initial value of each array element based on its index.
@@ -1104,7 +1120,7 @@ fun Kapacity.toArray(init: (Int) -> Byte = { 0 }): Array<Byte> =
  * Allocates a new boxed [Array] of [UByte] with a size equal to this capacity.
  *
  * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
- * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * allowed size is [Int.MAX_VALUE]` - 8` (approximately 2.14 GB). If this capacity exceeds
  * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
  *
  * @param init A function used to compute the initial value of each array element based on its index.
@@ -1113,20 +1129,6 @@ fun Kapacity.toArray(init: (Int) -> Byte = { 0 }): Array<Byte> =
 fun Kapacity.toArrayUnsigned(init: (Int) -> UByte = { 0U }): Array<UByte> =
     Array(size = this.rawBytesCoercedToIntRange, init = init)
 
-/**
- * Allocates a new primitive [ByteArray] with a size equal to this capacity, using the
- * provided [init] function to populate the elements.
- *
- * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
- * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
- * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
- *
- * @param init A function used to compute the initial value of each array element based on its index.
- * @return A new primitive [ByteArray].
- */
-fun Kapacity.toByteArray(
-    init: (Int) -> Byte = { 0 },
-): ByteArray = ByteArray(size = this.rawBytesCoercedToIntRange, init = init)
 
 /**
  * Allocates a new primitive [ByteArray] with a size equal to this capacity.
@@ -1134,7 +1136,7 @@ fun Kapacity.toByteArray(
  * allocation where all elements are instantly initialized to `0`.
  *
  * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
- * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * allowed size is [Int.MAX_VALUE]` - 8` (approximately 2.14 GB). If this capacity exceeds
  * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
  *
  * @return A new primitive [ByteArray] filled with zeros.
@@ -1147,9 +1149,167 @@ fun Kapacity.toByteArray(): ByteArray = ByteArray(size = this.rawBytesCoercedToI
  * allocation where all elements are instantly initialized to `0`.
  *
  * **Warning on Truncation:** Because Kotlin arrays are strictly indexed by [Int], the maximum
- * allowed size is [Int.MAX_VALUE] (approximately 2.14 GB). If this capacity exceeds
+ * allowed size is [Int.MAX_VALUE]` - 8` (approximately 2.14 GB). If this capacity exceeds
  * that limit, the resulting array size will be silently truncated to [Int.MAX_VALUE].
  *
  * @return A new primitive [UByteArray] filled with zeros.
  */
 fun Kapacity.toUByteArray(): UByteArray = UByteArray(size = this.rawBytesCoercedToIntRange)
+
+//region copyInto
+/**
+ * Copies up to the specified [kapacity] of bytes from this array into the [destination] array.
+ *
+ * **Zero Allocation & Safe Bounds:** This operation mutates the provided [destination] array
+ * directly without allocating new memory. It safely clamps the number of bytes copied to prevent
+ * `IndexOutOfBoundsException`. The actual number of bytes transferred will be the minimum of:
+ * the requested [kapacity], the available data in this source array after [startIndex], or the
+ * available space in the [destination] array after [destinationOffset].
+ *
+ * @param destination The array to write the copied data into.
+ * @param destinationOffset The index in the [destination] array to begin writing at. Defaults to 0.
+ * @param startIndex The index in this source array to begin reading from. Defaults to 0.
+ * @param kapacity The maximum amount of data to copy.
+ * @return The original [destination] array, allowing for fluent method chaining.
+ */
+fun ByteArray.copyInto(
+    destination: ByteArray,
+    destinationOffset: Int = 0,
+    startIndex: Int = 0,
+    kapacity: Kapacity,
+): ByteArray {
+    val maxDestinationSize = (destination.size - destinationOffset)
+    val maxSourceSize = (this.size - startIndex)
+    val safeLength = minOf(
+        a = kapacity.rawBytesCoercedToIntRange,
+        b = minOf(a = maxSourceSize, b = maxDestinationSize)
+    )
+
+    if (safeLength <= 0) return destination
+
+    val safeEndOffset = startIndex + safeLength
+    return this@copyInto.copyInto(
+        destination = destination,
+        destinationOffset = destinationOffset,
+        startIndex = startIndex,
+        endIndex = safeEndOffset,
+    )
+}
+
+/**
+ * Copies up to the specified [kapacity] of bytes from this array into the [destination] array.
+ *
+ * **Zero Allocation & Safe Bounds:** This operation mutates the provided [destination] array
+ * directly without allocating new memory. It safely clamps the number of bytes copied to prevent
+ * `IndexOutOfBoundsException`. The actual number of bytes transferred will be the minimum of:
+ * the requested [kapacity], the available data in this source array after [startIndex], or the
+ * available space in the [destination] array after [destinationOffset].
+ *
+ * @param destination The array to write the copied data into.
+ * @param destinationOffset The index in the [destination] array to begin writing at. Defaults to 0.
+ * @param startIndex The index in this source array to begin reading from. Defaults to 0.
+ * @param kapacity The maximum amount of data to copy.
+ * @return The original [destination] array, allowing for fluent method chaining.
+ */
+fun UByteArray.copyInto(
+    destination: UByteArray,
+    destinationOffset: Int = 0,
+    startIndex: Int = 0,
+    kapacity: Kapacity,
+): UByteArray {
+    val maxDestinationSize = (destination.size - destinationOffset)
+    val maxSourceSize = (this.size - startIndex)
+    val safeLength = minOf(
+        a = kapacity.rawBytesCoercedToIntRange,
+        b = minOf(a = maxSourceSize, b = maxDestinationSize)
+    )
+
+    if (safeLength <= 0) return destination
+
+    val safeEndOffset = startIndex + safeLength
+    return this@copyInto.copyInto(
+        destination = destination,
+        destinationOffset = destinationOffset,
+        startIndex = startIndex,
+        endIndex = safeEndOffset,
+    )
+}
+
+/**
+ * Copies up to the specified [kapacity] of bytes from this array into the [destination] array.
+ *
+ * **Zero Allocation & Safe Bounds:** This operation mutates the provided [destination] array
+ * directly without allocating new memory. It safely clamps the number of bytes copied to prevent
+ * `IndexOutOfBoundsException`. The actual number of bytes transferred will be the minimum of:
+ * the requested [kapacity], the available data in this source array after [startIndex], or the
+ * available space in the [destination] array after [destinationOffset].
+ *
+ * @param destination The array to write the copied data into.
+ * @param destinationOffset The index in the [destination] array to begin writing at. Defaults to 0.
+ * @param startIndex The index in this source array to begin reading from. Defaults to 0.
+ * @param kapacity The maximum amount of data to copy.
+ * @return The original [destination] array, allowing for fluent method chaining.
+ */
+fun Array<Byte>.copyInto(
+    destination: Array<Byte>,
+    destinationOffset: Int = 0,
+    startIndex: Int = 0,
+    kapacity: Kapacity,
+): Array<Byte> {
+    val maxDestinationSize = (destination.size - destinationOffset)
+    val maxSourceSize = (this.size - startIndex)
+    val safeLength = minOf(
+        a = kapacity.rawBytesCoercedToIntRange,
+        b = minOf(a = maxSourceSize, b = maxDestinationSize)
+    )
+
+    if (safeLength <= 0) return destination
+
+    val safeEndOffset = startIndex + safeLength
+    return this@copyInto.copyInto(
+        destination = destination,
+        destinationOffset = destinationOffset,
+        startIndex = startIndex,
+        endIndex = safeEndOffset,
+    )
+}
+
+/**
+ * Copies up to the specified [kapacity] of bytes from this array into the [destination] array.
+ *
+ * **Zero Allocation & Safe Bounds:** This operation mutates the provided [destination] array
+ * directly without allocating new memory. It safely clamps the number of bytes copied to prevent
+ * `IndexOutOfBoundsException`. The actual number of bytes transferred will be the minimum of:
+ * the requested [kapacity], the available data in this source array after [startIndex], or the
+ * available space in the [destination] array after [destinationOffset].
+ *
+ * @param destination The array to write the copied data into.
+ * @param destinationOffset The index in the [destination] array to begin writing at. Defaults to 0.
+ * @param startIndex The index in this source array to begin reading from. Defaults to 0.
+ * @param kapacity The maximum amount of data to copy.
+ * @return The original [destination] array, allowing for fluent method chaining.
+ */
+fun Array<UByte>.copyInto(
+    destination: Array<UByte>,
+    destinationOffset: Int = 0,
+    startIndex: Int = 0,
+    kapacity: Kapacity,
+): Array<UByte> {
+    val maxDestinationSize = (destination.size - destinationOffset)
+    val maxSourceSize = (this.size - startIndex)
+    val safeLength = minOf(
+        a = kapacity.rawBytesCoercedToIntRange,
+        b = minOf(a = maxSourceSize, b = maxDestinationSize)
+    )
+
+    if (safeLength <= 0) return destination
+
+    val safeEndOffset = startIndex + safeLength
+    return this@copyInto.copyInto(
+        destination = destination,
+        destinationOffset = destinationOffset,
+        startIndex = startIndex,
+        endIndex = safeEndOffset,
+    )
+}
+//endregion
