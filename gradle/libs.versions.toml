@@ -1,5 +1,5 @@
 [versions]
-kapacity = "0.9.9-beta07"
+kapacity = "0.9.9-beta08"
 agp = "8.11.2"
 android-compileSdk = "36"
 android-minSdk = "24"
