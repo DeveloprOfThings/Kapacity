@@ -2,10 +2,25 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.androidLint)
+    id("org.jetbrains.dokka")
+}
+
+dokka {
+    dokkaPublications.html {
+        moduleName.set("Kapacity Core")
+        includes.from("README.md")
+    }
+
+    dokkaSourceSets.configureEach {
+        sourceLink {
+            localDirectory.set(file("src/main/kotlin"))
+            remoteUrl("https://github.com/DeveloprOfThings/Kapacity/tree/main/kapacity")
+            remoteLineSuffix.set("#L")
+        }
+    }
 }
 
 kotlin {
-
     // Target declarations - add or remove as needed below. These define
     // which platforms this KMP module supports.
     // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
@@ -96,5 +111,4 @@ kotlin {
             }
         }
     }
-
 }

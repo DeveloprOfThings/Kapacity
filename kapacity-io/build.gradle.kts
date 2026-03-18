@@ -2,6 +2,21 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.androidLint)
+    id("org.jetbrains.dokka")
+}
+
+dokka {
+    dokkaPublications.html {
+        moduleName.set("Kapacity IO")
+        includes.from("README.md")
+    }
+    dokkaSourceSets.configureEach {
+        sourceLink {
+            localDirectory.set(file("src/main/kotlin"))
+            remoteUrl("https://github.com/DeveloprOfThings/Kapacity/tree/main/kapacity-io")
+            remoteLineSuffix.set("#L")
+        }
+    }
 }
 
 kotlin {

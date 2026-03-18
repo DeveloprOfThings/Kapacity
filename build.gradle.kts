@@ -1,3 +1,5 @@
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -9,6 +11,24 @@ plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary) apply false
     alias(libs.plugins.androidLint) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
+    id("org.jetbrains.dokka") version "2.1.0"
+}
+
+dokka {
+    // Sets properties for the whole project
+    dokkaPublications.html {
+        moduleName.set("Kapacity Documentation")
+        includes.from("README.md")
+    }
+
+    dokkaSourceSets.configureEach {
+        documentedVisibilities.set(setOf(VisibilityModifier.Public))
+    }
+}
+
+dependencies {
+    dokka(project(":kapacity"))
+    dokka(project(":kapacity-io"))
 }
 
 val projectGroup = project.findProperty("GROUP")?.toString() ?: "io.github.developrofthings"
