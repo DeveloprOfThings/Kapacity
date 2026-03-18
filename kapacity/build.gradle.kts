@@ -14,7 +14,7 @@ dokka {
     dokkaSourceSets.configureEach {
         sourceLink {
             localDirectory.set(file("src/main/kotlin"))
-            remoteUrl("https://github.com/DeveloprOfThings/Kapacity/tree/main/kapacity")
+            remoteUrl("https://github.com/DeveloprOfThings/Kapacity/tree/main/kapacity/src")
             remoteLineSuffix.set("#L")
         }
     }
