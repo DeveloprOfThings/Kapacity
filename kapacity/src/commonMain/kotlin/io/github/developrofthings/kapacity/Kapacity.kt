@@ -225,6 +225,19 @@ value class Kapacity private constructor(val rawBytes: Long) : Comparable<Kapaci
     override fun compareTo(other: Kapacity): Int = this.rawBytes.compareTo(other.rawBytes)
 
     companion object {
+
+        /**
+         * A sentinel value representing an invalid, missing, or exhausted capacity.
+         *
+         * In the context of I/O operations, this is commonly returned to indicate that the
+         * end of a stream (EOF) has been reached, mirroring the `-1` result returned by
+         * standard Java API's.
+         *
+         * The underlying `rawBytes` value for this instance is `-1L`.
+         */
+        @ExperimentalKapacityApi
+        val INVALID: Kapacity = Kapacity(rawBytes = -1L)
+
         fun fromBytes(bytes: Long): Kapacity = Kapacity(
             rawBytes = bytes.coerceAtLeast(
                 minimumValue = 0L
