@@ -3,10 +3,14 @@
 
 package io.github.developrofthings.kapacity.io
 
+import io.github.developrofthings.kapacity.ExperimentalKapacityApi
 import io.github.developrofthings.kapacity.InternalKapacityApi
 import io.github.developrofthings.kapacity.Kapacity
 import io.github.developrofthings.kapacity.byte
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.OutputStreamWriter
 import java.nio.ByteBuffer
 import java.nio.file.Path
 import kotlin.io.path.fileSize
@@ -122,5 +126,120 @@ fun ByteBuffer.put(
         /* src = */ source,
         /* offset = */ sourceOffset,
         /* length = */ safeLength,
+    )
+}
+
+
+/**
+ * Returns an estimate of the number of bytes that can be read (or skipped over) from this
+ * [InputStream] without blocking, safely wrapped as a [Kapacity] instance.
+ *
+ * **Important Note on Java IO:** This property directly delegates to [InputStream.available].
+ * It represents the number of bytes currently buffered locally or immediately accessible.
+ * It does **not** represent the total remaining size of the stream or file. You should never
+ * use this property to allocate a buffer intended to hold the entire contents of a network stream.
+ *
+ * @return The estimated number of non-blocking bytes currently available, represented as [Kapacity].
+ * @throws java.io.IOException If an I/O error occurs while checking the underlying stream.
+ */
+val InputStream.available: Kapacity get() = available().byte
+
+/**
+ * Reads up to the specified [kapacity] of bytes from this input stream into the given [destination] array.
+ *
+ * This function safely guards against buffer overflows. It automatically calculates the available
+ * space in the [destination] array starting from the [destinationOffset] and ensures that the number
+ * of bytes read does not exceed this available space, even if the requested [kapacity] is larger.
+ *
+ * @param destination The byte array to which data is written.
+ * @param destinationOffset The starting offset in the [destination] array where the data will be written. Defaults to 0.
+ * @param kapacity The maximum number of bytes to read from the stream.
+ * @return The total number of bytes read into the buffer, or `-1` if there is no more data because the end of the stream has been reached.
+ * @throws IllegalArgumentException If [destinationOffset] is outside the bounds of the [destination] array,
+ * or if [kapacity] represents a negative value.
+ */
+fun InputStream.read(
+    destination: ByteArray,
+    destinationOffset: Int = 0,
+    kapacity: Kapacity,
+): Int {
+    require(destinationOffset in 0..destination.size) {
+        "destinationOffset ($destinationOffset) must be between 0 and ${destination.size}"
+    }
+    require(kapacity.rawBytes >= 0L) {
+        "Cannot read a negative kapacity: $kapacity"
+    }
+
+    val readLength = kapacity.rawBytesCoercedToIntRange
+    val availableSpace = (destination.size - destinationOffset)
+    val safeLength = minOf(
+        a = readLength,
+        b = availableSpace,
+    )
+    return this.read(
+        /* b = */ destination,
+        /* off = */ destinationOffset,
+        /* len = */ safeLength
+    )
+}
+
+/**
+ * Reads up to the specified [kapacity] of bytes from this input stream into the given [destination] array,
+ * returning the result as a [Kapacity] instance.
+ *
+ * Like its primitive counterpart, this function safely limits the read length to the available space
+ * in the [destination] array to prevent buffer overflows.
+ *
+ * @param destination The byte array to which data is written.
+ * @param destinationOffset The starting offset in the [destination] array where the data will be written. Defaults to 0.
+ * @param kapacity The maximum number of bytes to read from the stream.
+ * @return The total number of bytes read wrapped in a [Kapacity] instance, or [Kapacity.INVALID] if
+ * the end of the stream has been reached.
+ * @throws IllegalArgumentException If [destinationOffset] is outside the bounds of the [destination] array,
+ * or if [kapacity] represents a negative value.
+ */
+@ExperimentalKapacityApi
+fun InputStream.readKapacity(
+    destination: ByteArray,
+    destinationOffset: Int = 0,
+    kapacity: Kapacity,
+): Kapacity = this.read(
+    destination = destination,
+    destinationOffset = destinationOffset,
+    kapacity = kapacity
+).takeIf { it >= 0 }?.byte ?: Kapacity.INVALID
+
+/**
+ * Writes up to the specified [kapacity] of bytes from the [source] array to this output stream.
+ *
+ * This function blocks until the bytes are written or an exception is thrown.
+ * * **Safe Bounds:** The actual number of bytes written is safely clamped to prevent
+ * `IndexOutOfBoundsException`. The length will be the minimum of: the requested [kapacity] or
+ * the available data in the [source] array accounting for the [sourceOffset].
+ *
+ * @param source The data to write.
+ * @param sourceOffset The start offset in the [source] array from which to begin reading. Defaults to 0.
+ * @param kapacity The maximum number of bytes to write to the stream.
+ * @throws java.io.IOException If an I/O error occurs.
+ */
+fun OutputStream.write(
+    source: ByteArray,
+    sourceOffset: Int = 0,
+    kapacity: Kapacity,
+) {
+    val writeLength = kapacity.rawBytesCoercedToIntRange
+    val availableSpace = (source.size - sourceOffset)
+    val safeLength = minOf(
+        a = writeLength,
+        b = availableSpace,
+    )
+
+    // Exit early if capacity is 0 or offsets are out of bounds
+    if (safeLength <= 0) return
+
+    this.write(
+        /* b = */ source,
+        /* off = */ sourceOffset,
+        /* len = */ safeLength
     )
 }
